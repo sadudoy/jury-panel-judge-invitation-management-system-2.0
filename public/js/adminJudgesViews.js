@@ -1190,7 +1190,6 @@ export async function renderAdminJudgeDetail(container, judgeId) {
                           <tr>
                             <td>
                               <div class="cell-title">${escapeHtml(l.action.replace(/_/g, ' '))}</div>
-                              <div class="cell-meta">${escapeHtml(JSON.stringify(l.details))}</div>
                             </td>
                             <td class="td-right mono" style="font-size:12px;">${escapeHtml(formatDateTime(l.created_at))}</td>
                           </tr>`
