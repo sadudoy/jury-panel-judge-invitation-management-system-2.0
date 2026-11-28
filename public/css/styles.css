@@ -281,8 +281,50 @@ textarea {
   margin-top: 6px;
 }
 
+.auth-autofill {
+  margin-top: 18px;
+  padding: 12px 14px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.auth-autofill-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.auth-autofill-header svg {
+  width: 13px;
+  height: 13px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.auth-autofill-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.auth-autofill-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.auth-autofill-btn.is-target {
+  border-color: var(--primary-border);
+  background: var(--primary-soft);
+  color: var(--primary-hover);
+}
+
 .auth-card-footer {
-  margin-top: 22px;
+  margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
   display: flex;
@@ -748,7 +790,6 @@ textarea {
 
 .card-body {
   padding: 16px;
-  position: relative;
 }
 
 /* KPI Grid (Compact 3-column ledger strip on desktop) */

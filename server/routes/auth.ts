@@ -17,6 +17,167 @@ import {
 
 const router = Router();
 
+interface DemoAccountPayload {
+  email: string;
+  password: string;
+  fullName: string;
+}
+
+const verifiedCredentialCache: {
+  admin?: { payload: DemoAccountPayload; hash: string };
+  judge?: { payload: DemoAccountPayload; hash: string };
+} = {};
+
+async function resolveDemoAdmin(): Promise<DemoAccountPayload | null> {
+  if (process.env.DEMO_ADMIN_EMAIL && process.env.DEMO_ADMIN_PASSWORD) {
+    const email = process.env.DEMO_ADMIN_EMAIL.trim().toLowerCase();
+    const password = process.env.DEMO_ADMIN_PASSWORD;
+    const res = await query<{
+      email: string;
+      full_name: string;
+      password_hash: string;
+      is_active: boolean;
+    }>(
+      `SELECT email, full_name, password_hash, is_active
+         FROM users
+        WHERE LOWER(email) = LOWER($1) AND role = 'ADMIN'
+        LIMIT 1`,
+      [email]
+    );
+    const row = res.rows[0];
+    if (row && row.is_active) {
+      if (
+        verifiedCredentialCache.admin &&
+        verifiedCredentialCache.admin.payload.email === row.email &&
+        verifiedCredentialCache.admin.hash === row.password_hash
+      ) {
+        return verifiedCredentialCache.admin.payload;
+      }
+
+      if (await bcrypt.compare(password, row.password_hash)) {
+        const payload = { email: row.email, password, fullName: row.full_name };
+        verifiedCredentialCache.admin = { payload, hash: row.password_hash };
+        return payload;
+      }
+    }
+  }
+
+  const demoAdminEmail = 'demo.admin@baust.edu.bd';
+  const demoAdminPassword = process.env.DEMO_ADMIN_PASSWORD || 'DemoAdmin@2026';
+  let demoRow = (
+    await query<{
+      email: string;
+      full_name: string;
+      role: string;
+      password_hash: string;
+      is_active: boolean;
+    }>(
+      `SELECT email, full_name, role, password_hash, is_active
+         FROM users
+        WHERE LOWER(email) = LOWER($1)
+        LIMIT 1`,
+      [demoAdminEmail]
+    )
+  ).rows[0];
+
+  if (!demoRow) {
+    const hash = await bcrypt.hash(demoAdminPassword, 12);
+    await query(
+      `INSERT INTO users (email, password_hash, role, full_name, is_active)
+       VALUES ($1, $2, 'ADMIN', 'Demo Fest Administrator', TRUE)
+       ON CONFLICT (email) DO NOTHING`,
+      [demoAdminEmail, hash]
+    );
+    demoRow = (
+      await query<{
+        email: string;
+        full_name: string;
+        role: string;
+        password_hash: string;
+        is_active: boolean;
+      }>(
+        `SELECT email, full_name, role, password_hash, is_active
+           FROM users
+          WHERE LOWER(email) = LOWER($1)
+          LIMIT 1`,
+        [demoAdminEmail]
+      )
+    ).rows[0];
+  }
+
+  if (demoRow && demoRow.role === 'ADMIN' && demoRow.is_active) {
+    if (
+      verifiedCredentialCache.admin &&
+      verifiedCredentialCache.admin.payload.email === demoRow.email &&
+      verifiedCredentialCache.admin.hash === demoRow.password_hash
+    ) {
+      return verifiedCredentialCache.admin.payload;
+    }
+    if (await bcrypt.compare(demoAdminPassword, demoRow.password_hash)) {
+      const payload = {
+        email: demoRow.email,
+        password: demoAdminPassword,
+        fullName: demoRow.full_name,
+      };
+      verifiedCredentialCache.admin = { payload, hash: demoRow.password_hash };
+      return payload;
+    }
+  }
+
+  return null;
+}
+
+async function resolveDemoJudge(): Promise<DemoAccountPayload | null> {
+  const demoJudgePassword = process.env.DEMO_JUDGE_PASSWORD || 'DemoJudge@2026';
+  const preferredEmail = (process.env.DEMO_JUDGE_EMAIL || '').trim().toLowerCase();
+
+  const res = await query<{
+    email: string;
+    full_name: string;
+    password_hash: string;
+  }>(
+    `SELECT u.email, u.full_name, u.password_hash
+       FROM users u
+       INNER JOIN judges j ON j.user_id = u.id
+      WHERE u.role = 'JUDGE'
+        AND u.is_active = TRUE
+        AND j.is_active = TRUE
+        AND (
+          ($1 <> '' AND LOWER(u.email) = $1)
+          OR LOWER(u.email) IN ('tanvir.chowdhury@demo.ext.org', 'kamal.uddin@demo.baust.edu.bd')
+          OR LOWER(u.email) LIKE '%@demo.%'
+        )
+      ORDER BY
+        CASE
+          WHEN ($1 <> '' AND LOWER(u.email) = $1) THEN 0
+          WHEN LOWER(u.email) = 'tanvir.chowdhury@demo.ext.org' THEN 1
+          WHEN LOWER(u.email) = 'kamal.uddin@demo.baust.edu.bd' THEN 2
+          ELSE 3
+        END,
+        u.id ASC
+      LIMIT 5`,
+    [preferredEmail]
+  );
+
+  for (const row of res.rows) {
+    if (
+      verifiedCredentialCache.judge &&
+      verifiedCredentialCache.judge.payload.email === row.email &&
+      verifiedCredentialCache.judge.hash === row.password_hash
+    ) {
+      return verifiedCredentialCache.judge.payload;
+    }
+
+    if (await bcrypt.compare(demoJudgePassword, row.password_hash)) {
+      const payload = { email: row.email, password: demoJudgePassword, fullName: row.full_name };
+      verifiedCredentialCache.judge = { payload, hash: row.password_hash };
+      return payload;
+    }
+  }
+
+  return null;
+}
+
 router.get('/status', async (_req, res, next) => {
   try {
     const adminCountRes = await query<{ cnt: string }>(
@@ -24,6 +185,32 @@ router.get('/status', async (_req, res, next) => {
     );
     const needsAdminSetup = Number(adminCountRes.rows[0].cnt) === 0;
     res.json({ needsAdminSetup });
+  } catch (err) {
+    next(mapPgError(err));
+  }
+});
+
+router.get('/demo-credentials', async (_req, res, next) => {
+  try {
+    if (process.env.ENABLE_DEMO_AUTOFILL === 'false') {
+      res.json({ enabled: false, admin: null, judge: null });
+      return;
+    }
+
+    const adminCountRes = await query<{ cnt: string }>(
+      "SELECT COUNT(*) AS cnt FROM users WHERE role = 'ADMIN'"
+    );
+    if (Number(adminCountRes.rows[0].cnt) === 0) {
+      res.json({ enabled: false, admin: null, judge: null });
+      return;
+    }
+
+    const [admin, judge] = await Promise.all([resolveDemoAdmin(), resolveDemoJudge()]);
+    res.json({
+      enabled: Boolean(admin || judge),
+      admin,
+      judge,
+    });
   } catch (err) {
     next(mapPgError(err));
   }

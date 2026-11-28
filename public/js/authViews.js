@@ -76,8 +76,86 @@ export function renderAuthView(container, { needsAdminSetup, initialRole = 'ADMI
   }
 
   let selectedRole = initialRole === 'JUDGE' ? 'JUDGE' : 'ADMIN';
+  let demoAccounts = null;
+  let demoLoaded = false;
 
-  function renderLogin() {
+  function applyAutofill(targetRole) {
+    const account = targetRole === 'ADMIN' ? demoAccounts?.admin : demoAccounts?.judge;
+    if (!account) {
+      showToast(
+        targetRole === 'ADMIN'
+          ? 'No demo administrator login is available.'
+          : 'No demo judge login is available yet. Sign in as Admin to add a judge.',
+        'warning'
+      );
+      return;
+    }
+
+    if (selectedRole !== targetRole) {
+      selectedRole = targetRole;
+      window.location.hash = targetRole === 'ADMIN' ? '#/admin/login' : '#/judge/login';
+      renderLogin({ email: account.email, password: account.password });
+    } else {
+      const emailInput = container.querySelector('#login-email');
+      const passwordInput = container.querySelector('#login-password');
+      if (emailInput) emailInput.value = account.email;
+      if (passwordInput) passwordInput.value = account.password;
+    }
+
+    const submitBtn = container.querySelector('#login-submit-btn');
+    if (submitBtn) submitBtn.focus();
+    showToast(
+      `Filled ${targetRole === 'ADMIN' ? 'Admin' : 'Judge'} credentials (${account.email}). Click Sign In to continue.`,
+      'success'
+    );
+  }
+
+  function renderAutofillMarkup() {
+    if (!demoLoaded || !demoAccounts?.enabled) return '';
+    const hasAdmin = Boolean(demoAccounts.admin);
+    const hasJudge = Boolean(demoAccounts.judge);
+    if (!hasAdmin && !hasJudge) return '';
+
+    return `
+      <div class="auth-autofill" id="auth-autofill-bar">
+        <div class="auth-autofill-header">
+          <i data-lucide="sparkles"></i>
+          <span>1-Click Demo Login Autofill</span>
+        </div>
+        <div class="auth-autofill-actions">
+          ${
+            hasAdmin
+              ? `<button type="button" class="btn btn-secondary btn-sm auth-autofill-btn ${selectedRole === 'ADMIN' ? 'is-target' : ''}" id="autofill-admin-btn">
+                  <i data-lucide="shield"></i>
+                  <span>Autofill Admin</span>
+                </button>`
+              : ''
+          }
+          ${
+            hasJudge
+              ? `<button type="button" class="btn btn-secondary btn-sm auth-autofill-btn ${selectedRole === 'JUDGE' ? 'is-target' : ''}" id="autofill-judge-btn">
+                  <i data-lucide="award"></i>
+                  <span>Autofill Judge</span>
+                </button>`
+              : ''
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  function bindAutofillEvents() {
+    const adminFillBtn = container.querySelector('#autofill-admin-btn');
+    if (adminFillBtn) {
+      adminFillBtn.addEventListener('click', () => applyAutofill('ADMIN'));
+    }
+    const judgeFillBtn = container.querySelector('#autofill-judge-btn');
+    if (judgeFillBtn) {
+      judgeFillBtn.addEventListener('click', () => applyAutofill('JUDGE'));
+    }
+  }
+
+  function renderLogin(prefill = null) {
     const isAdmin = selectedRole === 'ADMIN';
     container.innerHTML = `
       <div class="auth-shell">
@@ -126,6 +204,8 @@ export function renderAuthView(container, { needsAdminSetup, initialRole = 'ADMI
             </button>
           </form>
 
+          <div id="auth-autofill-slot">${renderAutofillMarkup()}</div>
+
           <div class="auth-card-footer">
             <i data-lucide="lock"></i>
             <span>Only invited judges and administrators can sign in. Contact the Fest Administrator if you need login access.</span>
@@ -133,7 +213,16 @@ export function renderAuthView(container, { needsAdminSetup, initialRole = 'ADMI
         </div>
       </div>
     `;
+
+    if (prefill) {
+      const emailInput = container.querySelector('#login-email');
+      const passwordInput = container.querySelector('#login-password');
+      if (emailInput) emailInput.value = prefill.email || '';
+      if (passwordInput) passwordInput.value = prefill.password || '';
+    }
+
     refreshIcons(container);
+    bindAutofillEvents();
 
     container.querySelector('#role-tab-admin').addEventListener('click', () => {
       selectedRole = 'ADMIN';
@@ -182,4 +271,19 @@ export function renderAuthView(container, { needsAdminSetup, initialRole = 'ADMI
   }
 
   renderLogin();
+
+  apiFetch('/api/auth/demo-credentials')
+    .then((data) => {
+      demoAccounts = data;
+      demoLoaded = true;
+      const slot = container.querySelector('#auth-autofill-slot');
+      if (slot) {
+        slot.innerHTML = renderAutofillMarkup();
+        refreshIcons(slot);
+        bindAutofillEvents();
+      }
+    })
+    .catch(() => {
+      demoLoaded = true;
+    });
 }
