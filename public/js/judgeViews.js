@@ -22,11 +22,14 @@ export async function renderJudgeDashboard(container) {
     const s = data.stats;
     const upcoming = data.upcomingAssignments || [];
 
+    const needsInvitationResponse = inv && inv.response_status === 'PENDING';
+    const hasPendingAssignments = Number(s.pending_confirmation || 0) > 0;
+
     container.innerHTML = `
       <div class="page-header">
         <div>
           <h1 class="page-title">Welcome, ${escapeHtml(p.name)}</h1>
-          <p class="page-subtitle">${escapeHtml(p.designation)} · ${escapeHtml(p.institution)} · ${escapeHtml(p.judge_type)} Judge</p>
+          <p class="page-subtitle">${escapeHtml(p.designation)} · ${escapeHtml(p.institution)} · ${p.judge_type === 'FACULTY' ? 'Faculty' : 'External'} Judge</p>
         </div>
         <div class="header-actions">
           <a href="#/judge/schedule" class="btn"><i data-lucide="calendar"></i><span>My Schedule</span></a>
@@ -35,21 +38,29 @@ export async function renderJudgeDashboard(container) {
       </div>
 
       ${
-        inv && inv.response_status === 'PENDING'
-          ? `<div class="callout callout-info" style="margin-bottom:20px;">
+        needsInvitationResponse
+          ? `<div class="callout callout-warning" style="margin-bottom:20px;">
               <div>
-                <strong>Fest Invitation Pending Response</strong>
-                <div>Please respond before <strong>${escapeHtml(formatDateTime(inv.expiration_date))}</strong> so the committee can allocate your competition slots.</div>
+                <strong>Official Fest Invitation Awaiting Your Response:</strong>
+                Please accept or decline before <strong>${escapeHtml(formatDateTime(inv.expiration_date))}</strong> so the committee can schedule your judging duties.
               </div>
-              <a href="#/judge/invitations" class="btn btn-primary btn-sm">Respond Now</a>
+              <a href="#/judge/invitations" class="btn btn-primary btn-sm">Respond to Invitation</a>
             </div>`
-          : ''
+          : hasPendingAssignments
+            ? `<div class="callout callout-info" style="margin-bottom:20px;">
+                <div>
+                  <strong>${s.pending_confirmation} Competition Assignment(s) Awaiting Confirmation:</strong>
+                  Review your assigned time slot(s) and confirm or decline directly in My Assignments.
+                </div>
+                <a href="#/judge/assignments" class="btn btn-primary btn-sm">Review Assignments</a>
+              </div>`
+            : ''
       }
 
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-label">Fest Invitation</div>
-          <div class="kpi-value" style="font-size:18px;">${inv ? statusTag(inv.response_status) : statusTag('NOT_INVITED')}</div>
+          <div class="kpi-value" style="font-size:18px; padding-top:4px;">${inv ? statusTag(inv.response_status) : statusTag('NOT_INVITED')}</div>
           <div class="kpi-sub">${inv ? `Deadline: ${escapeHtml(formatDateTime(inv.expiration_date))}` : 'Awaiting invitation from admin'}</div>
         </div>
         <div class="kpi-card">
@@ -63,9 +74,9 @@ export async function renderJudgeDashboard(container) {
           <div class="kpi-sub">${s.standby_assignments} Standby Backup slot(s)</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Past / Exception Records</div>
+          <div class="kpi-label">Past &amp; Closed Assignments</div>
           <div class="kpi-value">${s.historical_assignments}</div>
-          <div class="kpi-sub">Declined, withdrawn, or replaced records</div>
+          <div class="kpi-sub">Declined, withdrawn, or replaced slots</div>
         </div>
       </div>
 
@@ -246,7 +257,7 @@ export async function renderJudgeAssignments(container) {
       <div class="page-header">
         <div>
           <h1 class="page-title">My Assignments</h1>
-          <p class="page-subtitle">Confirm or decline new slot assignments and review your complete assignment history.</p>
+          <p class="page-subtitle">Confirm or decline assigned competition slots and review your complete judging assignment history.</p>
         </div>
       </div>
 
@@ -255,7 +266,7 @@ export async function renderJudgeAssignments(container) {
           Active &amp; Pending (${assignments.filter((a) => activeStatuses.includes(a.assignment_status)).length})
         </button>
         <button type="button" class="tab-btn ${activeTab === 'history' ? 'active' : ''}" data-tab="history">
-          Historical &amp; Closed (${assignments.filter((a) => !activeStatuses.includes(a.assignment_status)).length})
+          Past &amp; Closed (${assignments.filter((a) => !activeStatuses.includes(a.assignment_status)).length})
         </button>
       </div>
 
@@ -456,7 +467,7 @@ export async function renderJudgeSchedule(container) {
         <div class="card">
           <div class="card-header">
             <h2 class="card-title">Declare Slot Availability</h2>
-            <span class="cell-meta">Helps administrators avoid conflicts when allocating primary and backup duties.</span>
+            <span class="cell-meta">Lets organizers know when you are free so they can avoid scheduling clashes.</span>
           </div>
           <div class="table-wrap">
             ${
@@ -487,7 +498,7 @@ export async function renderJudgeSchedule(container) {
                           <td class="td-right">
                             <div class="td-actions">
                               <button type="button" class="btn btn-sm ${s.availability_status === 'AVAILABLE' ? 'btn-success' : ''} set-avail-btn" data-slot-id="${s.slot_id}" data-status="AVAILABLE">Available</button>
-                              <button type="button" class="btn btn-sm set-avail-btn" data-slot-id="${s.slot_id}" data-status="TENTATIVE">Tentative</button>
+                              <button type="button" class="btn btn-sm ${s.availability_status === 'TENTATIVE' ? 'btn-warning' : ''} set-avail-btn" data-slot-id="${s.slot_id}" data-status="TENTATIVE">Tentative</button>
                               <button type="button" class="btn btn-sm ${s.availability_status === 'UNAVAILABLE' ? 'btn-danger' : ''} set-avail-btn" data-slot-id="${s.slot_id}" data-status="UNAVAILABLE">Unavailable</button>
                             </div>
                           </td>

@@ -159,89 +159,145 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 32px 20px;
   background-color: var(--bg-canvas);
 }
 
 .auth-card {
   width: 100%;
-  max-width: 410px;
+  max-width: 456px;
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  padding: 24px;
+  padding: 34px 32px 28px;
+  box-shadow: 0 1px 3px rgba(17, 19, 21, 0.05), 0 8px 24px rgba(17, 19, 21, 0.04);
 }
 
-.auth-brand {
+.auth-brand,
+.auth-brand-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 2px;
-  margin-bottom: 16px;
-  padding-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
   border-bottom: 1px solid var(--border);
 }
 
 .auth-brand-logo {
-  width: 150px;
-  height: 150px;
+  width: 154px;
+  height: 154px;
   max-width: 100%;
   object-fit: contain;
   display: block;
-  margin: -28px auto -30px;
+  margin: -22px auto -20px;
   mix-blend-mode: multiply;
   pointer-events: none;
 }
 
-.auth-brand-sub {
+.auth-brand-sub,
+.auth-kicker {
   position: relative;
   z-index: 1;
-  font-size: 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.015em;
   color: var(--text-muted);
 }
 
 .auth-heading {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: -0.015em;
-  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
   color: var(--text-primary);
 }
 
 .auth-desc {
-  margin: 0 0 16px;
+  margin: 0 0 22px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13.5px;
+  line-height: 1.55;
 }
 
 .segmented-control {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2px;
+  gap: 4px;
   background: var(--bg-subtle);
   border: 1px solid var(--border);
-  padding: 2px;
+  padding: 4px;
   border-radius: var(--radius-md);
-  margin-bottom: 16px;
+  margin-bottom: 22px;
 }
 
 .segmented-control button {
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid transparent;
   background: transparent;
-  padding: 6px 10px;
+  padding: 9px 12px;
   border-radius: var(--radius-sm);
   font-weight: 600;
   font-size: 13.5px;
   color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.segmented-control button svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.segmented-control button:hover:not(.active) {
+  color: var(--text-primary);
 }
 
 .segmented-control button.active {
   background: var(--bg-surface);
   color: var(--text-primary);
-  border: 1px solid var(--border);
+  border-color: var(--border);
+  box-shadow: 0 1px 2px rgba(17, 19, 21, 0.06);
+}
+
+.auth-card .form-group {
+  gap: 7px;
+  margin-bottom: 18px;
+}
+
+.auth-card .input {
+  min-height: 42px;
+  padding: 9px 12px;
+}
+
+.auth-card #login-submit-btn,
+.auth-card #setup-submit-btn {
+  margin-top: 6px;
+}
+
+.auth-card-footer {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.auth-card-footer svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 /* Workspace Layout */
@@ -649,6 +705,12 @@ textarea {
   font-size: 13px;
 }
 
+.btn-lg {
+  min-height: 42px;
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
 .btn-ghost {
   border-color: transparent;
   background: transparent;
@@ -686,6 +748,7 @@ textarea {
 
 .card-body {
   padding: 16px;
+  position: relative;
 }
 
 /* KPI Grid (Compact 3-column ledger strip on desktop) */
@@ -1245,11 +1308,11 @@ tbody tr:hover {
   }
 
   .auth-shell {
-    padding: 14px;
+    padding: 20px 14px;
   }
 
   .auth-card {
-    padding: 20px 16px;
+    padding: 26px 20px 22px;
   }
 
   .topbar {

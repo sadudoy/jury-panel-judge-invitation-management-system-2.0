@@ -30,7 +30,7 @@ export function openReplaceModal(assignment, onDone) {
           <div class="callout callout-info" style="margin-bottom:14px;">
             <div>
               <strong>Replacing:</strong> ${escapeHtml(assignment.judge_name)} (${escapeHtml(assignment.competition_name)} · ${escapeHtml(assignment.slot_label)})
-              <div class="cell-meta">Original assignment and any attendance records are preserved permanently.</div>
+              <div class="cell-meta">The original assignment and attendance records are safely kept in history.</div>
             </div>
           </div>
 
@@ -38,14 +38,14 @@ export function openReplaceModal(assignment, onDone) {
             <label for="rep-reason">Replacement Reason</label>
             <input id="rep-reason" class="input" type="text" value="${
               assignment.attendance_status === 'ABSENT'
-                ? 'Primary judge marked ABSENT on competition day'
-                : 'Primary judge unavailable / withdrawn'
+                ? 'Primary judge could not attend on competition day'
+                : 'Primary judge unavailable / stepped down'
             }" />
           </div>
 
           <div class="stack" style="gap:16px;">
             <div>
-              <h3 style="font-size:14px; margin:0 0 8px;">1. Pre-Assigned Standby Backups (${standby.length})</h3>
+              <h3 style="font-size:14px; margin:0 0 8px;">1. Standby Backup Judges for This Slot (${standby.length})</h3>
               ${
                 standby.length === 0
                   ? '<p class="form-hint">No standby faculty backups pre-assigned for this slot.</p>'
@@ -81,10 +81,10 @@ export function openReplaceModal(assignment, onDone) {
             </div>
 
             <div>
-              <h3 style="font-size:14px; margin:0 0 8px;">2. Dynamic Available Faculty Judges (${dynamicFaculty.length})</h3>
+              <h3 style="font-size:14px; margin:0 0 8px;">2. Other Available Faculty Judges (${dynamicFaculty.length})</h3>
               ${
                 dynamicFaculty.length === 0
-                  ? '<p class="form-hint">No conflict-free, invitation-accepted faculty judges are currently available for this slot window.</p>'
+                  ? '<p class="form-hint">No other accepted faculty judges are free during this time slot.</p>'
                   : `<div class="table-wrap" style="border:1px solid var(--border); border-radius:8px; max-height:240px; overflow-y:auto;">
                       <table>
                         <thead>
@@ -242,11 +242,29 @@ export async function renderAdminBackups(container) {
       <div class="page-header">
         <div>
           <h1 class="page-title">Backup &amp; Replacement Management</h1>
-          <p class="page-subtitle">Activate standby faculty backups, dynamically assign available faculty, and preserve full replacement chains.</p>
+          <p class="page-subtitle">Assign backup judges when someone is absent or steps down, and handle late arrivals.</p>
         </div>
         <div class="header-actions">
           <a href="#/admin/attendance" class="btn"><i data-lucide="clipboard-check"></i><span>Attendance Desk</span></a>
           <a href="#/admin/allocation" class="btn btn-primary"><i data-lucide="user-plus"></i><span>Pre-Assign Backups</span></a>
+        </div>
+      </div>
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+        <div class="kpi-card">
+          <div class="kpi-label">Needing Replacement</div>
+          <div class="kpi-value" style="color:${needingReplacement.length > 0 ? 'var(--danger-text)' : 'var(--success-text)'};">${needingReplacement.length}</div>
+          <div class="kpi-sub">Absent, declined, or withdrawn primary seats</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Standby Faculty Backups</div>
+          <div class="kpi-value">${standbyBackups.length}</div>
+          <div class="kpi-sub">Ready to step in if needed</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Completed Replacements</div>
+          <div class="kpi-value">${replacements.length}</div>
+          <div class="kpi-sub">Full replacement history saved</div>
         </div>
       </div>
 
@@ -475,7 +493,7 @@ export async function renderAdminAttendance(container) {
       <div class="page-header">
         <div>
           <h1 class="page-title">Competition-Day Attendance</h1>
-          <p class="page-subtitle">Mark judge attendance, monitor vacant seats, and activate backups immediately for absent judges.</p>
+          <p class="page-subtitle">Mark judge attendance on event day, check open seats, and assign a backup right away if someone is absent.</p>
         </div>
         <div class="header-actions">
           <a href="#/admin/backups" class="btn"><i data-lucide="shield-alert"></i><span>Backup Desk</span></a>
@@ -602,8 +620,8 @@ export async function renderAdminAttendance(container) {
                                     ? `
                                       <button type="button" class="btn btn-sm ${r.attendance_status === 'PRESENT' ? 'btn-success' : ''} mark-att-btn" data-id="${r.assignment_id}" data-status="PRESENT">Present</button>
                                       <button type="button" class="btn btn-sm ${r.attendance_status === 'ABSENT' ? 'btn-danger' : ''} mark-att-btn" data-id="${r.assignment_id}" data-status="ABSENT">Absent</button>
-                                      <button type="button" class="btn btn-sm mark-att-btn" data-id="${r.assignment_id}" data-status="LATE">Late</button>
-                                      <button type="button" class="btn btn-sm mark-att-btn" data-id="${r.assignment_id}" data-status="EXCUSED">Excused</button>
+                                      <button type="button" class="btn btn-sm ${r.attendance_status === 'LATE' ? 'btn-warning' : ''} mark-att-btn" data-id="${r.assignment_id}" data-status="LATE">Late</button>
+                                      <button type="button" class="btn btn-sm ${r.attendance_status === 'EXCUSED' ? 'btn-primary' : ''} mark-att-btn" data-id="${r.assignment_id}" data-status="EXCUSED">Excused</button>
                                     `
                                     : ''
                                 }

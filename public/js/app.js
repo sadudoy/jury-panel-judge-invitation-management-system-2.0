@@ -152,7 +152,11 @@ function renderWorkspaceShell(activePath) {
             <div class="avatar-circle">${escapeHtml(initials || 'U')}</div>
             <div class="sidebar-user-meta">
               <div class="sidebar-user-name">${escapeHtml(state.user.fullName)}</div>
-              <div class="sidebar-user-role">${isAdmin ? 'Administrator' : `${escapeHtml(state.user.judgeType || '')} Judge`}</div>
+              <div class="sidebar-user-role">${
+                isAdmin
+                  ? 'Administrator'
+                  : `${state.user.judgeType === 'FACULTY' ? 'Faculty' : state.user.judgeType === 'EXTERNAL' ? 'External' : ''} Judge`.trim()
+              }</div>
             </div>
           </div>
           <button type="button" class="btn btn-sm" id="logout-btn" style="width:100%;">
@@ -341,7 +345,7 @@ async function bootstrap() {
       }
     }
   } catch (err) {
-    showToast(`Unable to reach server: ${err.message}`, 'error');
+    showToast(`Could not connect right now: ${err.message}`, 'error');
   }
 
   window.addEventListener('hashchange', route);

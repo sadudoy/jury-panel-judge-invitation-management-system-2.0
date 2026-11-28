@@ -15,7 +15,7 @@ import {
 } from './api.js';
 
 export async function renderAdminDashboard(container) {
-  container.innerHTML = renderLoading('Loading fest overview...');
+  container.innerHTML = renderLoading('Loading dashboard...');
   try {
     const data = await apiFetch('/api/dashboard/summary');
     const m = data.metrics;
@@ -26,7 +26,7 @@ export async function renderAdminDashboard(container) {
       <div class="page-header">
         <div>
           <h1 class="page-title">Fest Operations Dashboard</h1>
-          <p class="page-subtitle">Real-time judge invitations, slot allocations, attendance, and vacant seats for BAUST CSE Fest.</p>
+          <p class="page-subtitle">Live overview of judge invitations, competition schedules, attendance, and open seats.</p>
         </div>
         <div class="header-actions">
           <a href="#/admin/invitations" class="btn"><i data-lucide="mail"></i><span>Manage Invitations</span></a>
@@ -53,7 +53,7 @@ export async function renderAdminDashboard(container) {
         <div class="kpi-card">
           <div class="kpi-label">Judge Assignments</div>
           <div class="kpi-value">${m.primary_assignments + m.activated_backup_assignments}</div>
-          <div class="kpi-sub">${m.primary_assignments} Primary · ${m.backup_assignments} Standby · ${m.activated_backup_assignments} Activated Backup</div>
+          <div class="kpi-sub">${m.primary_assignments} Primary · ${m.backup_assignments} Standby · ${m.activated_backup_assignments} Backup Active</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Attendance Summary</div>
@@ -61,7 +61,7 @@ export async function renderAdminDashboard(container) {
           <div class="kpi-sub">${m.absent_judges} Absent · ${m.late_judges} Late · ${m.excused_judges} Excused</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Vacant Judge Positions</div>
+          <div class="kpi-label">Open Judge Positions</div>
           <div class="kpi-value" style="color:${m.vacant_positions > 0 ? 'var(--warning-text)' : 'var(--success-text)'};">${m.vacant_positions}</div>
           <div class="kpi-sub">${m.expired_invitations} Expired Invitations</div>
         </div>
@@ -137,19 +137,19 @@ export async function renderAdminDashboard(container) {
 
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">Recent System Activity</h2>
+            <h2 class="card-title">Recent Activity</h2>
             <a href="#/admin/reports" class="btn btn-sm">View Reports</a>
           </div>
           <div class="table-wrap">
             ${
               activity.length === 0
-                ? renderEmpty('No activity logged yet', 'Actions performed by admins and judges appear here.')
+                ? renderEmpty('No activity yet', 'Actions performed by administrators and judges appear here.')
                 : `<table>
                     <thead>
                       <tr>
-                        <th>Event</th>
-                        <th>Actor</th>
-                        <th class="td-right">Timestamp</th>
+                        <th>Action</th>
+                        <th>By</th>
+                        <th class="td-right">When</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -158,8 +158,8 @@ export async function renderAdminDashboard(container) {
                           (a) => `
                         <tr>
                           <td>
-                            <div class="cell-title">${escapeHtml(a.action.replace(/_/g, ' '))}</div>
-                            <div class="cell-meta">${escapeHtml(a.entity_type)}${a.entity_id ? ` #${a.entity_id}` : ''}</div>
+                            <div class="cell-title">${escapeHtml(formatFriendlyAction(a.action))}</div>
+                            <div class="cell-meta">${escapeHtml(formatFriendlyEntity(a.entity_type, a.entity_id))}</div>
                           </td>
                           <td>${escapeHtml(a.actor_name || a.actor_role || 'System')}</td>
                           <td class="td-right mono" style="font-size:12px;">${escapeHtml(formatDateTime(a.created_at))}</td>
@@ -249,7 +249,7 @@ export async function renderAdminReports(container) {
   let activityLogs = [];
 
   async function load() {
-    container.innerHTML = renderLoading('Generating reports from live database...');
+    container.innerHTML = renderLoading('Preparing reports...');
     try {
       const [rep, act] = await Promise.all([
         apiFetch('/api/reports/overview'),
@@ -272,13 +272,13 @@ export async function renderAdminReports(container) {
     container.innerHTML = `
       <div class="page-header">
         <div>
-          <h1 class="page-title">Reports &amp; Audit Trail</h1>
-          <p class="page-subtitle">Competition allocation coverage, judge workload, replacement history, and activity logs.</p>
+          <h1 class="page-title">Reports &amp; Activity Log</h1>
+          <p class="page-subtitle">View competition judge coverage, judge workload, backup replacements, and recent activity.</p>
         </div>
         <div class="header-actions">
           <button type="button" class="btn" id="export-csv-btn">
             <i data-lucide="download"></i>
-            <span>Export Current CSV</span>
+            <span>Download CSV</span>
           </button>
         </div>
       </div>
@@ -287,7 +287,7 @@ export async function renderAdminReports(container) {
         <button type="button" class="tab-btn ${activeTab === 'competitions' ? 'active' : ''}" data-tab="competitions">Competition Summary</button>
         <button type="button" class="tab-btn ${activeTab === 'workload' ? 'active' : ''}" data-tab="workload">Judge Workload</button>
         <button type="button" class="tab-btn ${activeTab === 'replacements' ? 'active' : ''}" data-tab="replacements">Replacement History</button>
-        <button type="button" class="tab-btn ${activeTab === 'activity' ? 'active' : ''}" data-tab="activity">Activity Logs</button>
+        <button type="button" class="tab-btn ${activeTab === 'activity' ? 'active' : ''}" data-tab="activity">Activity Log</button>
       </div>
 
       <div class="card">
@@ -400,14 +400,14 @@ export async function renderAdminReports(container) {
     } else {
       body.innerHTML =
         activityLogs.length === 0
-          ? renderEmpty('No audit events found', '')
+          ? renderEmpty('No activity recorded yet', '')
           : `<table>
               <thead>
                 <tr>
                   <th>Time</th>
-                  <th>Actor</th>
+                  <th>By</th>
                   <th>Action</th>
-                  <th>Entity</th>
+                  <th>Item</th>
                   <th>Details</th>
                 </tr>
               </thead>
@@ -417,10 +417,10 @@ export async function renderAdminReports(container) {
                     (a) => `
                   <tr>
                     <td class="mono" style="font-size:12px;">${escapeHtml(formatDateTime(a.created_at))}</td>
-                    <td>${escapeHtml(a.actor_name || a.actor_role || 'SYSTEM')}</td>
-                    <td class="cell-title">${escapeHtml(a.action)}</td>
-                    <td>${escapeHtml(a.entity_type)} ${a.entity_id ? `#${a.entity_id}` : ''}</td>
-                    <td class="mono" style="font-size:11.5px; max-width:340px; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(JSON.stringify(a.details))}</td>
+                    <td>${escapeHtml(a.actor_name || a.actor_role || 'System')}</td>
+                    <td class="cell-title">${escapeHtml(formatFriendlyAction(a.action))}</td>
+                    <td>${escapeHtml(formatFriendlyEntity(a.entity_type, a.entity_id))}</td>
+                    <td class="cell-meta" style="max-width:340px; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(formatFriendlyDetails(a.details))}</td>
                   </tr>`
                   )
                   .join('')}
@@ -463,15 +463,85 @@ export async function renderAdminReports(container) {
           activityLogs.map((a) => [a.created_at, a.actor_name || '', a.actor_role || '', a.action, a.entity_type, a.entity_id || '', JSON.stringify(a.details)])
         );
       }
-      showToast('CSV exported.', 'success');
+      showToast('Report downloaded.', 'success');
     });
   }
 
   await load();
 }
 
+function formatFriendlyAction(action) {
+  const s = String(action || '').toUpperCase();
+  const known = {
+    ADMIN_BOOTSTRAP_SETUP: 'Created first administrator account',
+    USER_LOGIN: 'Signed in',
+    PASSWORD_CHANGED: 'Changed password',
+    JUDGE_CREATED: 'Added judge',
+    JUDGES_BULK_IMPORTED: 'Imported judges from spreadsheet',
+    JUDGE_UPDATED: 'Updated judge profile',
+    JUDGE_ACCOUNT_CREATED: 'Created judge login',
+    JUDGE_PASSWORD_RESET: 'Reset judge password',
+    JUDGE_DEACTIVATED: 'Deactivated judge',
+    JUDGE_REACTIVATED: 'Reactivated judge',
+    JUDGE_PROFILE_UPDATED: 'Updated own profile',
+    INVITATION_SENT: 'Sent fest invitation',
+    INVITATION_REOPENED: 'Reopened fest invitation',
+    INVITATION_RESENT: 'Resent fest invitation',
+    INVITATION_CANCELLED: 'Cancelled fest invitation',
+    INVITATION_ACCEPTED: 'Accepted fest invitation',
+    INVITATION_REJECTED: 'Declined fest invitation',
+    COMPETITION_CREATED: 'Created competition',
+    COMPETITION_UPDATED: 'Updated competition',
+    COMPETITION_CANCELLED: 'Cancelled competition',
+    SLOT_CREATED: 'Added time slot',
+    SLOT_RESCHEDULED: 'Rescheduled time slot',
+    SLOT_CANCELLED: 'Cancelled time slot',
+    ASSIGNMENT_CREATED: 'Assigned judge to slot',
+    ASSIGNMENT_ACCEPTED: 'Accepted slot assignment',
+    ASSIGNMENT_DECLINED: 'Declined slot assignment',
+    ASSIGNMENT_WITHDRAWN_BY_JUDGE: 'Judge withdrew from slot',
+    ASSIGNMENT_WITHDRAWN_BY_ADMIN: 'Removed judge from slot',
+    BACKUP_ACTIVATED_REPLACEMENT: 'Activated backup replacement',
+    LATE_ARRIVAL_AFTER_REPLACEMENT: 'Resolved late arrival',
+    ATTENDANCE_MARKED: 'Marked attendance',
+  };
+  if (known[s]) return known[s];
+  return s
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
+}
+
+function formatFriendlyEntity(entityType, entityId) {
+  const map = {
+    USER: 'Account',
+    JUDGE: 'Judge',
+    INVITATION: 'Invitation',
+    COMPETITION: 'Competition',
+    SLOT: 'Time Slot',
+    ASSIGNMENT: 'Assignment',
+    ATTENDANCE: 'Attendance',
+  };
+  const label = map[String(entityType || '').toUpperCase()] || String(entityType || 'Item');
+  return entityId ? `${label} #${entityId}` : label;
+}
+
+function formatFriendlyDetails(details) {
+  if (!details || typeof details !== 'object') return '—';
+  const parts = [];
+  if (details.reason) parts.push(details.reason);
+  if (details.note) parts.push(details.note);
+  if (details.attendanceStatus) parts.push(`Attendance: ${details.attendanceStatus}`);
+  if (details.role) parts.push(`Role: ${details.role}`);
+  if (details.createdCount !== undefined) parts.push(`${details.createdCount} added`);
+  if (details.skippedDuplicateCount) parts.push(`${details.skippedDuplicateCount} duplicate(s) skipped`);
+  if (details.resolution === 'KEEP_REPLACEMENT') parts.push('Kept backup judge');
+  if (details.resolution === 'RESTORE_ORIGINAL') parts.push('Restored original judge');
+  return parts.length > 0 ? parts.join(' · ') : '—';
+}
+
 export async function renderAdminSettings(container) {
-  container.innerHTML = renderLoading('Loading system settings...');
+  container.innerHTML = renderLoading('Loading settings...');
   try {
     const data = await apiFetch('/api/settings/summary');
     const admins = data.admins || [];
@@ -481,12 +551,12 @@ export async function renderAdminSettings(container) {
       <div class="page-header">
         <div>
           <h1 class="page-title">System Settings</h1>
-          <p class="page-subtitle">Manage administrator accounts, password security, and invitation deadline checks.</p>
+          <p class="page-subtitle">Manage administrator accounts, update your password, and check expired invitations.</p>
         </div>
         <div class="header-actions">
           <button type="button" class="btn" id="run-expire-btn">
             <i data-lucide="clock"></i>
-            <span>Expire Overdue Invitations</span>
+            <span>Check Overdue Invitations</span>
           </button>
           <button type="button" class="btn btn-primary" id="add-admin-btn">
             <i data-lucide="user-plus"></i>
@@ -497,15 +567,15 @@ export async function renderAdminSettings(container) {
 
       <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
         <div class="kpi-card">
-          <div class="kpi-label">Active User Sessions</div>
+          <div class="kpi-label">People Signed In Now</div>
           <div class="kpi-value">${sys.active_sessions ?? 0}</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Audit Log Events</div>
+          <div class="kpi-label">Recorded Actions</div>
           <div class="kpi-value">${sys.total_audit_events ?? 0}</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Database Migrations Applied</div>
+          <div class="kpi-label">System Updates Applied</div>
           <div class="kpi-value">${sys.applied_migrations ?? 0}</div>
         </div>
       </div>

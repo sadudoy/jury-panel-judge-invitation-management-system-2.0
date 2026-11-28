@@ -50,10 +50,10 @@ export async function renderAdminCompetitions(container) {
             <div class="form-group">
               <label for="c-status">Status</label>
               <select id="c-status" class="input">
-                <option value="DRAFT" ${comp?.status === 'DRAFT' ? 'selected' : ''}>DRAFT</option>
-                <option value="OPEN" ${!comp || comp?.status === 'OPEN' ? 'selected' : ''}>OPEN</option>
-                <option value="ONGOING" ${comp?.status === 'ONGOING' ? 'selected' : ''}>ONGOING</option>
-                <option value="COMPLETED" ${comp?.status === 'COMPLETED' ? 'selected' : ''}>COMPLETED</option>
+                <option value="DRAFT" ${comp?.status === 'DRAFT' ? 'selected' : ''}>Draft (Not Open Yet)</option>
+                <option value="OPEN" ${!comp || comp?.status === 'OPEN' ? 'selected' : ''}>Open</option>
+                <option value="ONGOING" ${comp?.status === 'ONGOING' ? 'selected' : ''}>Ongoing</option>
+                <option value="COMPLETED" ${comp?.status === 'COMPLETED' ? 'selected' : ''}>Completed</option>
               </select>
             </div>
           </div>
@@ -96,7 +96,7 @@ export async function renderAdminCompetitions(container) {
       <div class="page-header">
         <div>
           <h1 class="page-title">Competitions</h1>
-          <p class="page-subtitle">Define BAUST CSE Fest competitions, primary judge quotas, and lifecycle status.</p>
+          <p class="page-subtitle">Set up BAUST CSE Fest competitions, how many primary judges each slot needs, and their current status.</p>
         </div>
         <div class="header-actions">
           <a href="#/admin/slots" class="btn"><i data-lucide="calendar"></i><span>Manage Slots</span></a>
@@ -185,8 +185,8 @@ export async function renderAdminCompetitions(container) {
           title: `Cancel Competition – ${comp.name}`,
           bodyHtml: `
             <div class="callout callout-danger" style="margin-bottom:14px;">
-              Cancelling this competition will cancel all of its active slots and transition all
-              active/standby judge assignments to CANCELLED_SLOT while preserving historical records.
+              Cancelling this competition will cancel all of its time slots and release all
+              assigned and backup judges (past records will still be saved).
             </div>
             <div class="form-group">
               <label for="cancel-comp-reason">Cancellation Reason</label>
@@ -207,7 +207,7 @@ export async function renderAdminCompetitions(container) {
                 });
                 closeModal();
                 showToast(
-                  `Competition cancelled (${res.cancelledSlotsCount} slot(s), ${res.cancelledAssignmentsCount} assignment(s) preserved as cancelled).`,
+                  `Competition cancelled (${res.cancelledSlotsCount} slot(s) and ${res.cancelledAssignmentsCount} assignment(s) marked cancelled).`,
                   'success'
                 );
                 load();
@@ -352,10 +352,10 @@ export async function renderAdminSlots(container, initialCompetitionId = '') {
               conflictBox.style.display = 'block';
               conflictBox.innerHTML = `
                 <div class="callout callout-danger" style="flex-direction:column;">
-                  <div><strong>Scheduling Conflict Detected!</strong> Rescheduling overlaps existing assignments:</div>
+                  <div><strong>Time Conflict Found!</strong> Changing this slot overlaps with another assignment for:</div>
                   <ul style="margin:6px 0 8px 18px; padding:0;">${items}</ul>
                   <button type="button" class="btn btn-danger btn-sm" id="force-resched-btn">
-                    Reschedule &amp; Auto-Withdraw Conflicting Assignments
+                    Save New Time &amp; Release Conflicting Judges
                   </button>
                 </div>
               `;
@@ -381,7 +381,7 @@ export async function renderAdminSlots(container, initialCompetitionId = '') {
       <div class="page-header">
         <div>
           <h1 class="page-title">Competition Slots</h1>
-          <p class="page-subtitle">Schedule venues and time windows, detect reschedule conflicts, and monitor vacant seats.</p>
+          <p class="page-subtitle">Set venues and time schedules, catch time overlaps, and monitor open judge seats.</p>
         </div>
         <div class="header-actions">
           <button type="button" class="btn btn-primary" id="add-slot-btn">
@@ -557,10 +557,10 @@ export async function renderAdminAllocation(container, initialSlotId = '') {
       <div class="page-header">
         <div>
           <h1 class="page-title">Judge Allocation</h1>
-          <p class="page-subtitle">Assign invitation-accepted judges with live availability and overlap conflict checks.</p>
+          <p class="page-subtitle">Assign judges who accepted their fest invitation, with live availability and time-conflict checks.</p>
         </div>
         <div class="header-actions">
-          <select id="alloc-slot-select" class="input" style="min-width:300px;">
+          <select id="alloc-slot-select" class="input" style="min-width:280px;">
             ${slots
               .map(
                 (s) =>
@@ -571,15 +571,15 @@ export async function renderAdminAllocation(container, initialSlotId = '') {
         </div>
       </div>
 
-      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));">
         <div class="kpi-card">
           <div class="kpi-label">Selected Slot</div>
-          <div class="kpi-value" style="font-size:16px;">${escapeHtml(slot.competition_name)}</div>
+          <div class="kpi-value" style="font-size:17px;">${escapeHtml(slot.competition_name)}</div>
           <div class="kpi-sub">${escapeHtml(slot.slot_label)} · ${escapeHtml(slot.venue)}</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Schedule Window</div>
-          <div class="kpi-value" style="font-size:15px;" class="mono">${escapeHtml(formatTimeRange(slot.start_time, slot.end_time))}</div>
+          <div class="kpi-value mono" style="font-size:14.5px; line-height:1.35;">${escapeHtml(formatTimeRange(slot.start_time, slot.end_time))}</div>
           <div class="kpi-sub">Status: ${escapeHtml(slot.status)}</div>
         </div>
         <div class="kpi-card">
@@ -652,12 +652,12 @@ export async function renderAdminAllocation(container, initialSlotId = '') {
         <div class="card">
           <div class="card-header">
             <h2 class="card-title">Eligible Accepted Judges (${eligibleJudges.length})</h2>
-            <span class="cell-meta">Only active judges with ACCEPTED fest invitations appear here. Backups require FACULTY type.</span>
+            <span class="cell-meta">Only active judges who have accepted their fest invitation appear here. Only Faculty judges can be assigned as backups.</span>
           </div>
           <div class="table-wrap">
             ${
               eligibleJudges.length === 0
-                ? renderEmpty('No invitation-accepted judges available', 'Judges must accept their fest invitation before allocation.')
+                ? renderEmpty('No accepted judges available yet', 'Judges need to accept their fest invitation before they can be assigned to slots.')
                 : `<table>
                     <thead>
                       <tr>
@@ -695,7 +695,7 @@ export async function renderAdminAllocation(container, initialSlotId = '') {
                                     ? `<div style="color:var(--danger-text); font-size:12px; font-weight:600;">
                                         Conflict: ${escapeHtml(conflicts.map((c) => `${c.competitionName} (${c.slotLabel})`).join(', '))}
                                        </div>`
-                                    : '<span style="color:var(--success-text); font-size:12px; font-weight:600;">No conflict</span>'
+                                    : '<span style="color:var(--success-text); font-size:12px; font-weight:600;">Available (no conflict)</span>'
                               }
                             </td>
                             <td class="td-right">
@@ -770,7 +770,7 @@ export async function renderAdminAllocation(container, initialSlotId = '') {
             method: 'POST',
             body: { reason: 'Withdrawn from allocation workspace' },
           });
-          showToast('Assignment withdrawn (record preserved).', 'success');
+          showToast('Judge removed from slot.', 'success');
           loadAll();
         } catch (err) {
           showToast(err.message, 'error');

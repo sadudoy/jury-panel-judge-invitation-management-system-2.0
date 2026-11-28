@@ -1,39 +1,35 @@
-import { apiFetch, BRAND_LOGO_ALT, BRAND_LOGO_URL, escapeHtml, refreshIcons, setCsrfToken, showToast } from './api.js';
+import { apiFetch, BRAND_LOGO_ALT, BRAND_LOGO_URL, refreshIcons, setCsrfToken, showToast } from './api.js';
 
 export function renderAuthView(container, { needsAdminSetup, initialRole = 'ADMIN', onAuthenticated }) {
   if (needsAdminSetup) {
     container.innerHTML = `
       <div class="auth-shell">
         <div class="auth-card">
-          <div class="auth-brand">
-            <img
-              src="${BRAND_LOGO_URL}"
-              alt="${BRAND_LOGO_ALT}"
-              class="auth-brand-logo"
-            />
-            <div class="auth-brand-sub">Judge Invitation &amp; Allocation System</div>
+          <div class="auth-brand-wrap">
+            <img src="${BRAND_LOGO_URL}" alt="${BRAND_LOGO_ALT}" class="auth-brand-logo" />
+            <div class="auth-kicker">BAUST CSE Fest · Judge Management System</div>
           </div>
-          <h1 class="auth-heading">Initialize Administrator Account</h1>
+          <h1 class="auth-heading">Set Up Administrator Account</h1>
           <p class="auth-desc">
-            No administrator account has been configured yet. Create the primary Fest Administrator
-            account to unlock the management dashboard.
+            Welcome! Create the first Fest Administrator account to open the management dashboard.
           </p>
-          <div id="auth-error" class="callout callout-danger" style="display:none; margin-bottom:14px;"></div>
+          <div id="auth-error" class="callout callout-danger" style="display:none; margin-bottom:16px;"></div>
           <form id="setup-admin-form">
             <div class="form-group">
               <label for="setup-name">Full Name</label>
               <input id="setup-name" class="input" type="text" required placeholder="e.g. Dr. Rahman (Convener)" />
             </div>
             <div class="form-group">
-              <label for="setup-email">Official Email</label>
+              <label for="setup-email">Email Address</label>
               <input id="setup-email" class="input" type="email" required placeholder="admin@baust.edu.bd" />
             </div>
             <div class="form-group">
               <label for="setup-password">Password</label>
               <input id="setup-password" class="input" type="password" required minlength="8" placeholder="Minimum 8 characters" />
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;" id="setup-submit-btn">
-              Create Administrator &amp; Sign In
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%;" id="setup-submit-btn">
+              <i data-lucide="shield-check"></i>
+              <span>Create Administrator &amp; Sign In</span>
             </button>
           </form>
         </div>
@@ -59,7 +55,7 @@ export function renderAuthView(container, { needsAdminSetup, initialRole = 'ADMI
       }
 
       btn.disabled = true;
-      btn.textContent = 'Initializing...';
+      btn.textContent = 'Setting up...';
       try {
         const data = await apiFetch('/api/auth/setup-admin', {
           method: 'POST',
@@ -82,58 +78,58 @@ export function renderAuthView(container, { needsAdminSetup, initialRole = 'ADMI
   let selectedRole = initialRole === 'JUDGE' ? 'JUDGE' : 'ADMIN';
 
   function renderLogin() {
+    const isAdmin = selectedRole === 'ADMIN';
     container.innerHTML = `
       <div class="auth-shell">
         <div class="auth-card">
-          <div class="auth-brand">
-            <img
-              src="${BRAND_LOGO_URL}"
-              alt="${BRAND_LOGO_ALT}"
-              class="auth-brand-logo"
-            />
-            <div class="auth-brand-sub">Judge Invitation &amp; Allocation System</div>
+          <div class="auth-brand-wrap">
+            <img src="${BRAND_LOGO_URL}" alt="${BRAND_LOGO_ALT}" class="auth-brand-logo" />
+            <div class="auth-kicker">BAUST CSE Fest · Judge Management System</div>
           </div>
 
           <div class="segmented-control" role="tablist" aria-label="Portal Role">
-            <button type="button" id="role-tab-admin" class="${selectedRole === 'ADMIN' ? 'active' : ''}">
-              Admin Portal
+            <button type="button" id="role-tab-admin" class="${isAdmin ? 'active' : ''}">
+              <i data-lucide="shield"></i>
+              <span>Admin Portal</span>
             </button>
-            <button type="button" id="role-tab-judge" class="${selectedRole === 'JUDGE' ? 'active' : ''}">
-              Judge Portal
+            <button type="button" id="role-tab-judge" class="${!isAdmin ? 'active' : ''}">
+              <i data-lucide="award"></i>
+              <span>Judge Portal</span>
             </button>
           </div>
 
-          <h1 class="auth-heading">${selectedRole === 'ADMIN' ? 'Administrator Sign In' : 'Judge Portal Sign In'}</h1>
+          <h1 class="auth-heading">${isAdmin ? 'Administrator Sign In' : 'Judge Portal Sign In'}</h1>
           <p class="auth-desc">
             ${
-              selectedRole === 'ADMIN'
+              isAdmin
                 ? 'Sign in to manage judges, invitations, competition slots, allocations, backups, and attendance.'
-                : 'Sign in with the credentials issued by the BAUST CSE Fest organizing committee.'
+                : 'Sign in with the email and password provided by the BAUST CSE Fest organizing committee.'
             }
           </p>
 
-          <div id="auth-error" class="callout callout-danger" style="display:none; margin-bottom:14px;"></div>
+          <div id="auth-error" class="callout callout-danger" style="display:none; margin-bottom:16px;"></div>
 
           <form id="login-form">
             <div class="form-group">
               <label for="login-email">Email Address</label>
               <input id="login-email" class="input" type="email" required autocomplete="email" placeholder="${
-                selectedRole === 'ADMIN' ? 'admin@baust.edu.bd' : 'judge@institution.edu'
+                isAdmin ? 'admin@baust.edu.bd' : 'judge@institution.edu'
               }" />
             </div>
             <div class="form-group">
               <label for="login-password">Password</label>
               <input id="login-password" class="input" type="password" required autocomplete="current-password" placeholder="Enter your password" />
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;" id="login-submit-btn">
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%;" id="login-submit-btn">
               <i data-lucide="log-in"></i>
-              <span>Sign In to ${selectedRole === 'ADMIN' ? 'Admin Dashboard' : 'Judge Portal'}</span>
+              <span>Sign In to ${isAdmin ? 'Admin Dashboard' : 'Judge Portal'}</span>
             </button>
           </form>
 
-          <p class="form-hint" style="margin-top:16px; text-align:center;">
-            Public self-registration is disabled. Contact the Fest Administrator for account access.
-          </p>
+          <div class="auth-card-footer">
+            <i data-lucide="lock"></i>
+            <span>Only invited judges and administrators can sign in. Contact the Fest Administrator if you need login access.</span>
+          </div>
         </div>
       </div>
     `;
@@ -177,7 +173,7 @@ export function renderAuthView(container, { needsAdminSetup, initialRole = 'ADMI
         showToast(`Signed in as ${data.user.fullName}`, 'success');
         onAuthenticated(data.user);
       } catch (err) {
-        errBox.textContent = escapeHtml(err.message);
+        errBox.textContent = err.message;
         errBox.style.display = 'block';
       } finally {
         btn.disabled = false;
